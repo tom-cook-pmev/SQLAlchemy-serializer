@@ -106,6 +106,7 @@ class Serializer(object):
 
     def __init__(self, **kwargs):
         self.opts = kwargs
+        self.opts['toplevel'] = True
         self.schema = None
 
     def __call__(self, value, only=(), extend=()):
@@ -171,8 +172,9 @@ class Serializer(object):
             (Enum, lambda x: value.value),
         ]
 
-        if not self.opts['disable_serialize_relations']:
+        if (not self.opts.get('disable_serialize_relations', False)) or self.opts['toplevel']:
             serialize_types.append((SerializerMixin, self.serialize_model))
+            self.opts['toplevel'] = False
 
         for types, callback in serialize_types:
             if isinstance(value, types):
