@@ -41,6 +41,9 @@ class SerializerMixin(object):
     # Extra serialising functions
     serialize_types = ()
 
+    # Disable mapping relationships
+    disable_serialize_relations = False
+
     date_format = '%Y-%m-%d'
     datetime_format = '%Y-%m-%d %H:%M:%S'
     time_format = '%H:%M'
@@ -65,7 +68,7 @@ class SerializerMixin(object):
 
     def to_dict(self, only=(), rules=(),
                 date_format=None, datetime_format=None, time_format=None, tzinfo=None,
-                decimal_format=None, serialize_types=None):
+                decimal_format=None, serialize_types=None, disable_serialize_relations=False):
         """
         Returns SQLAlchemy model's data in JSON compatible format
 
@@ -88,7 +91,8 @@ class SerializerMixin(object):
             time_format=time_format or self.time_format,
             decimal_format=decimal_format or self.decimal_format,
             tzinfo=tzinfo or self.get_tzinfo(),
-            serialize_types=serialize_types or self.serialize_types
+            serialize_types=serialize_types or self.serialize_types,
+            disable_serialize_relations = disable_serialize_relations or self.disable_serialize_relations
         )
         return s(self, only=only, extend=rules)
 
@@ -153,7 +157,7 @@ class Serializer(object):
             value = value()
 
         extra_serialization_types = self.opts.get('serialize_types', ())
-        serialize_types = (
+        serialize_types = [
             *extra_serialization_types,
             (self.simple_types, lambda x: x),  # Should be checked before any other type
             (bytes, lambda x: x.decode()),
@@ -165,8 +169,11 @@ class Serializer(object):
             (dict, self.serialize_dict),  # Should be checked before Iterable
             (Iterable, self.serialize_iter),
             (Enum, lambda x: value.value),
-            (SerializerMixin, self.serialize_model),
-        )
+        ]
+
+        if not self.opts['disable_serialize_relations']:
+            serialize_types.append((SerializerMixin, self.serialize_model))
+
         for types, callback in serialize_types:
             if isinstance(value, types):
                 return callback(value)
