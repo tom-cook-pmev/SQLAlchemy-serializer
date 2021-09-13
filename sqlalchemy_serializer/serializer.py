@@ -284,7 +284,7 @@ class Serializer(object):
                 v = getattr(value, k)
                 logger.debug('Serialize key:%s type:%s model:%s', k, get_type(v), get_type(value))
                 serialised_value = self.fork(key=k, value=v)
-                if isinstance(value, SkipField):
+                if isinstance(serialised_value, SkipField):
                     continue
                 res[k] = serialised_value
             else:
