@@ -97,13 +97,16 @@ class SerializerMixin(object):
         return s(self, only=only, extend=rules)
 
 
+class SkipField(object):
+    pass
+
+
 class Serializer(object):
     """
     All serialization logic is implemented here
     """
     simple_types = (int, str, float, bool, type(None))  # Types that do nod need any serialization logic
     complex_types = (Iterable, dict, SerializerMixin)
-    skip_field = object()
 
     def __init__(self, **kwargs):
         self.opts = kwargs
@@ -178,7 +181,7 @@ class Serializer(object):
             serialize_types.append((SerializerMixin, self.serialize_model))
             self.opts['toplevel'] = False
         else:
-            serialize_types.append((SerializerMixin, lambda x: self.skip_field))
+            serialize_types.append((SerializerMixin, lambda x: SkipField()))
 
         for types, callback in serialize_types:
             if isinstance(value, types):
@@ -281,7 +284,7 @@ class Serializer(object):
                 v = getattr(value, k)
                 logger.debug('Serialize key:%s type:%s model:%s', k, get_type(v), get_type(value))
                 serialised_value = self.fork(key=k, value=v)
-                if serialised_value == self.skip_field:
+                if isinstance(value, SkipField):
                     continue
                 res[k] = serialised_value
             else:
