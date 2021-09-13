@@ -242,7 +242,10 @@ class Serializer(object):
         res = []
         for v in value:
             try:
-                res.append(self.fork(value=v))
+                serialized_value = self.fork(value=v)
+                if isinstance(serialized_value, SkipField):
+                    continue
+                res.append(serialized_value)
             except IsNotSerializable:
                 logger.warning('Can not serialize type:%s', get_type(v))
                 continue
@@ -258,7 +261,10 @@ class Serializer(object):
         for k, v in value.items():
             if self.schema.is_included(k):  # TODO: Skip check if is NOT greedy
                 logger.debug('Serialize key:%s type:%s of dict', k, get_type(v))
-                res[k] = self.fork(key=k, value=v)
+                serialized_value = self.fork(key=k, value=v)
+                if isinstance(serialized_value, SkipField):
+                    continue
+                res[k] = serialized_value
             else:
                 logger.debug('Skip key:%s of dict', k)
         return res
