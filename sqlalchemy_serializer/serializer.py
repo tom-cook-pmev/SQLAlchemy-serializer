@@ -103,6 +103,7 @@ class Serializer(object):
     """
     simple_types = (int, str, float, bool, type(None))  # Types that do nod need any serialization logic
     complex_types = (Iterable, dict, SerializerMixin)
+    skip_field = object()
 
     def __init__(self, **kwargs):
         self.opts = kwargs
@@ -177,7 +178,7 @@ class Serializer(object):
             serialize_types.append((SerializerMixin, self.serialize_model))
             self.opts['toplevel'] = False
         else:
-            serialize_types.append((SerializerMixin, lambda x: None))
+            serialize_types.append((SerializerMixin, lambda x: self.skip_field))
 
         for types, callback in serialize_types:
             if isinstance(value, types):
@@ -279,7 +280,10 @@ class Serializer(object):
             if self.schema.is_included(key=k):  # TODO: Skip check if is NOT greedy
                 v = getattr(value, k)
                 logger.debug('Serialize key:%s type:%s model:%s', k, get_type(v), get_type(value))
-                res[k] = self.fork(key=k, value=v)
+                serialised_value = self.fork(key=k, value=v)
+                if serialised_value == self.skip_field:
+                    continue
+                res[k] = serialised_value
             else:
                 logger.debug('Skip key:%s of model:%s', k, get_type(value))
         return res
